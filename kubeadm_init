@@ -1,0 +1,118 @@
+
+ Prepare Hostname, Firewall and SELinux
+ 
+# hostnamectl set-hostname master-node
+# cat <<EOF>> /etc/hosts
+10.128.0.27 master-node
+10.128.0.29 node-1 worker-node-1
+10.128.0.30 node-2 worker-node-2
+EOF
+-----------------
+ #disable SElinux and update your firewall rules.
+ 
+  setenforce 0
+  sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+ reboot
+ # Disable Firewalld
+ 
+systemctl stop firewalld
+systemctl disable firewalld
+ 
+# Install the most recent Docker Engine package.
+ sudo yum update -y
+ sudo amazon-linux-extras install docker -y
+ systemctl enable 
+ systemctl daemon-reload && systemctl restart docker 
+ sudo usermod -a -G docker ec2-user
+ docker info
+ 
+ 
+ swapoff -a
+echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+modprobe br_netfilter
+modprobe nf_nat
+modprobe xt_REDIRECT
+modprobe xt_owner
+modprobe iptable_nat
+modprobe iptable_mangle
+modprobe iptable_filter
+
+
+ 
+# Setup the Kubernetes Repo
+# You will need to add Kubernetes repositories manually as they do not come installed by default on CentOS 7.
+
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+
+If the Above is not working : 
+--------------------------------------------------------------------------------------------
+mv /etc/yum.repos.d/kubernetes.repo /etc/yum.repos.d/kubernetes.repo.bak
+cat >> /etc/yum.repos.d/kubernetes.repo <<EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=0
+EOF
+
+----------------------------------------------------------------------------------------------
+
+
+yum install -y kubelet-1.21.2
+yum install -y kubectl-1.21.2
+yum install -y kubeadm-1.21.2 
+
+
+systemctl daemon-reload 
+systemctl restart kubelet
+ 
+systemctl  status kubelet
+
+systemctl enable  kubelet
+
+# Now we are ready to initialize kubernetes master, but before that you need to disable swap in order to run “kubeadm init“ command.
+
+ swapoff -a
+
+
+ kubeadm init --control-plane-endpoint "192.168.10.30:6443" --upload-certs --pod-network-cidr=10.244.0.0/16
+ 
+ 
+ 
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join 192.168.10.30:6443 --token yu375i.n4e91c78unv8blch \
+        --discovery-token-ca-cert-hash sha256:0d0f0202dad742c8862a93fc06297944c76f101e1d3dcde7cfb0d650399ecff6 \
+        --control-plane --certificate-key e18c6ca13aa9c858e9aa57448e4c1bf0ca58ed3453b87557d24a1385f46751b6
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.10.30:6443 --token yu375i.n4e91c78unv8blch \
+        --discovery-token-ca-cert-hash sha256:0d0f0202dad742c8862a93fc06297944c76f101e1d3dcde7cfb0d650399ecff6
+[root@ip-192-168-10-30 pradeep]#
+
+
+
+ mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+
+
