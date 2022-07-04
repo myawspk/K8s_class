@@ -115,4 +115,5 @@ kubeadm join 192.168.10.30:6443 --token yu375i.n4e91c78unv8blch \
 
 
 
-
+Flanel 
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
