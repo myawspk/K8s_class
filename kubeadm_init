@@ -83,31 +83,10 @@ systemctl enable  kubelet
  swapoff -a
 
 
- kubeadm init --control-plane-endpoint "192.168.10.30:6443" --upload-certs --pod-network-cidr=10.244.0.0/16
+ kubeadm init --control-plane-endpoint "192.168.0.0:6443" --upload-certs --pod-network-cidr=10.244.0.0/16
  
  
  
-You should now deploy a pod network to the cluster.
-Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
-  https://kubernetes.io/docs/concepts/cluster-administration/addons/
-
-You can now join any number of the control-plane node running the following command on each as root:
-
-  kubeadm join 192.168.10.30:6443 --token yu375i.n4e91c78unv8blch \
-        --discovery-token-ca-cert-hash sha256:0d0f0202dad742c8862a93fc06297944c76f101e1d3dcde7cfb0d650399ecff6 \
-        --control-plane --certificate-key e18c6ca13aa9c858e9aa57448e4c1bf0ca58ed3453b87557d24a1385f46751b6
-
-Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
-As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
-"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
-
-Then you can join any number of worker nodes by running the following on each as root:
-
-kubeadm join 192.168.10.30:6443 --token yu375i.n4e91c78unv8blch \
-        --discovery-token-ca-cert-hash sha256:0d0f0202dad742c8862a93fc06297944c76f101e1d3dcde7cfb0d650399ecff6
-[root@ip-192-168-10-30 pradeep]#
-
-
 
  mkdir -p $HOME/.kube
   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
